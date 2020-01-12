@@ -9,17 +9,14 @@ running = True
 FPS = 30
 pygame.mouse.set_visible(False)
 clock = pygame.time.Clock()
-# have_red = False
-# have_blue = False
-# portals = {'blue': False, 'red': False}
-# portal_blue = None
-# portal_red = None
+
 player = None
 all_sprites = pygame.sprite.Group()
 walls_group = pygame.sprite.Group()
 empty_group = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
-portals_group = pygame.sprite.Group()
+b_portal_group = pygame.sprite.Group()
+r_portal_group = pygame.sprite.Group()
 # player = AnimatedSprite(load_image("dino.png"), 8, 2, 50, 50)
 
 
@@ -139,6 +136,16 @@ class Player(pygame.sprite.Sprite):
         self.rect = self.rect.move(x, y)
         if pygame.sprite.spritecollideany(self, walls_group):
             self.rect = self.rect.move(-x, -y)
+        if pygame.sprite.spritecollideany(self, b_portal_group):
+            if portal_r.rect.x > portal_b.rect.x:
+                self.rect = self.image.get_rect().move(portal_r.rect.x - 30, portal_r.rect.y)
+            else:
+                self.rect = self.image.get_rect().move(portal_r.rect.x + 30, portal_r.rect.y)
+        if pygame.sprite.spritecollideany(self, r_portal_group):
+            if portal_b.rect.x > portal_r.rect.x:
+                self.rect = self.image.get_rect().move(portal_b.rect.x - 30, portal_b.rect.y)
+            else:
+                self.rect = self.image.get_rect().move(portal_b.rect.x + 30, portal_b.rect.y)
 
 
 class AnimatedSprite(pygame.sprite.Sprite):
@@ -166,7 +173,7 @@ class AnimatedSprite(pygame.sprite.Sprite):
 
 class PortalBlue(pygame.sprite.Sprite):
     def __init__(self, pos_x, pos_y, d):
-        super().__init__(portals_group)
+        super().__init__(b_portal_group)
         self.image = portal_blue_image
         self.rect = self.image.get_rect().move(pos_x, pos_y)
         self.vx = directions[d][0]
@@ -179,7 +186,7 @@ class PortalBlue(pygame.sprite.Sprite):
 
 class PortalRed(pygame.sprite.Sprite):
     def __init__(self, pos_x, pos_y, d):
-        super().__init__(portals_group)
+        super().__init__(r_portal_group)
         self.image = portal_red_image
         self.rect = self.image.get_rect().move(pos_x, pos_y)
         self.vx = directions[d][0]
@@ -234,15 +241,18 @@ while running:
                 d = 'right'
         if event.type == pygame.MOUSEBUTTONDOWN:
             if not_have_blue:
+                b_portal_group = pygame.sprite.Group()
                 portal_b = PortalBlue(player.rect.x, player.rect.y, d)
                 not_have_blue = False
+                not_have_red = True
                 p_b = True
             else:
                 if not_have_red:
+                    r_portal_group = pygame.sprite.Group()
                     portal_r = PortalRed(player.rect.x, player.rect.y, d)
                     not_have_red = False
                     p_r = True
-
+                    not_have_blue = True
 
     # camera.update(player)
     # for sprite in all_sprites:
@@ -254,6 +264,7 @@ while running:
     walls_group.draw(screen)
     empty_group.draw(screen)
     player_group.draw(screen)
-    portals_group.draw(screen)
+    b_portal_group.draw(screen)
+    r_portal_group.draw(screen)
     pygame.display.flip()
 terminate()
