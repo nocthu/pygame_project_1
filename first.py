@@ -7,6 +7,7 @@ size = width, height = 750, 500
 screen = pygame.display.set_mode(size)
 running = True
 FPS = 30
+pygame.mouse.set_visible(False)
 clock = pygame.time.Clock()
 # have_red = False
 # have_blue = False
@@ -18,6 +19,7 @@ all_sprites = pygame.sprite.Group()
 walls_group = pygame.sprite.Group()
 empty_group = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
+portals_group = pygame.sprite.Group()
 # player = AnimatedSprite(load_image("dino.png"), 8, 2, 50, 50)
 
 
@@ -42,8 +44,8 @@ tile_width = tile_height = 50
 wall_image = pygame.transform.scale(load_image('wall_1.png'), (tile_width, tile_height))
 empty_image = pygame.transform.scale(load_image('wall_2.png'), (tile_width, tile_height))
 player_image = load_image('mario.png', -1)
-portal_blue_image = pygame.transform.scale(load_image('portal_blue.png', -1), (tile_width, tile_height))
-portal_red_image = pygame.transform.scale(load_image('portal_red.png', -1), (tile_width, tile_height))
+portal_blue_image = pygame.transform.scale(load_image('portal_blue.png', -1), (tile_width // 2, tile_height // 2))
+portal_red_image = pygame.transform.scale(load_image('portal_red.png', -1), (tile_width // 2, tile_height // 2))
 directions = {0: 0, 'right': (10, 0), 'left': (-10, 0), 'up': (0, -10), 'down': (0, 10)}
 
 
@@ -92,41 +94,7 @@ def load_level(filename):
     max_width = max(map(len, level_map))
 
     # дополняем каждую строку пустыми клетками ('.')
-    return list(map(lambda x: x.ljust(max_width, '.'), level_map))
-
-
-class Board:
-    # создание поля
-    def __init__(self, width, height):
-        self.width = width
-        self.height = height
-        self.board = [[0] * width for _ in range(height)]
-        # значения по умолчанию
-        self.left = 10
-        self.top = 10
-        self.cell_size = 30
-
-    def get_click(self, mouse_pos):
-        cell = self.get_cell(mouse_pos)
-        if cell:
-            self.on_click(cell)
-
-    def get_cell(self, mouse_pos):
-        self.p1 = (mouse_pos[0] - self.left) // self.cell_size
-        self.p2 = (mouse_pos[1] - self.top) // self.cell_size
-        if self.p1 < 0 or self.p1 >= self.width or self.p2 < 0 or self.p2 >= self.height:
-            return None
-        return self.p1, self.p2
-
-    def on_click(self, cell_coords):
-        pass
-
-    def render(self, screen):
-        for y in range(self.height):
-            for x in range(self.width):
-                pygame.draw.rect(screen, pygame.Color("white"),
-                                 (x * self.cell_size + self.left, y * self.cell_size + self.top,
-                                  self.cell_size, self.cell_size), 1)
+    return list(map(lambda x: x.ljust(max_width, '#'), level_map))
 
 
 class Camera:
@@ -197,33 +165,29 @@ class AnimatedSprite(pygame.sprite.Sprite):
 
 
 class PortalBlue(pygame.sprite.Sprite):
-    def __init__(self, pos_x, pos_y):
-        super().__init__(all_sprites)
-        # self.image = portal_blue_image
-        # self.rect = self.image.get_rect().move(pos_x, pos_y)
-        self.radius = 5
-        self.image = pygame.Surface((2 * 5, 2 * 5), pygame.SRCALPHA, 32)
-        pygame.draw.circle(self.image, pygame.Color("red"), (5, 5), 5)
-        self.rect = pygame.Rect(pos_x, pos_y, 2 * 5, 2 * 5)
+    def __init__(self, pos_x, pos_y, d):
+        super().__init__(portals_group)
+        self.image = portal_blue_image
+        self.rect = self.image.get_rect().move(pos_x, pos_y)
+        self.vx = directions[d][0]
+        self.vy = directions[d][1]
 
-    def update(self, d):
-        vx = directions[d][0]
-        vy = directions[d][1]
+    def update(self):
         if not pygame.sprite.spritecollideany(self, walls_group):
-            self.rect = self.rect.move(vx, vy)
+            self.rect = self.rect.move(self.vx, self.vy)
 
 
 class PortalRed(pygame.sprite.Sprite):
-    def __init__(self, pos_x, pos_y):
-        super().__init__(all_sprites)
+    def __init__(self, pos_x, pos_y, d):
+        super().__init__(portals_group)
         self.image = portal_red_image
         self.rect = self.image.get_rect().move(pos_x, pos_y)
+        self.vx = directions[d][0]
+        self.vy = directions[d][1]
 
-    def update(self, d):
-        vx = directions[d][0]
-        vy = directions[d][1]
+    def update(self):
         if not pygame.sprite.spritecollideany(self, walls_group):
-            self.rect = self.rect.move(vx, vy)
+            self.rect = self.rect.move(self.vx, self.vy)
 
 
 def generate_level(level):
@@ -245,7 +209,13 @@ def generate_level(level):
 start_screen()
 camera = Camera()
 player, level_x, level_y = generate_level(load_level('map.txt'))
+portal = None
 # board = Board(10, 10, 10)
+d = 'right'
+p_b = False
+p_r = False
+not_have_blue = True
+not_have_red = True
 while running:
     screen.fill(pygame.Color("white"))
     for event in pygame.event.get():
@@ -258,36 +228,32 @@ while running:
                 player.update(0, 10)
             if event.key == pygame.K_LEFT:
                 player.update(-10, 0)
+                d = 'left'
             if event.key == pygame.K_RIGHT:
                 player.update(10, 0)
+                d = 'right'
         if event.type == pygame.MOUSEBUTTONDOWN:
-            PortalBlue(event.pos[0], event.pos[1])
-    #         if portals['blue']:
-    #             portals['red'] = True
-    #             color = 'red'
-    #             x, y = event.pos[0], event.pos[1]
-    #             # drawing('red', event.pos[0], event.pos[1])
-    #         else:
-    #             portals['blue'] = True
-    #             color = 'blue'
-    #             x, y = event.pos[0], event.pos[1]
-    #             # drawing('blue', event.pos[0], event.pos[1])
-    # if portals['blue']:
-    #     pygame.draw.circle(screen, pygame.Color('blue'), (x, y), 5)
-    #     x += 10 * clock.tick() // 1000
-    #     y += 0 * clock.tick() // 1000
-    # elif portals['red']:
-    #     pygame.draw.circle(screen, pygame.Color('red'), (x, y), 5)
-    #     x += 10 * clock.tick() // 1000
-    #     y += 0 * clock.tick() // 1000
-    #     portals['blue'] = False
-    #     portals['red'] = False
+            if not_have_blue:
+                portal_b = PortalBlue(player.rect.x, player.rect.y, d)
+                not_have_blue = False
+                p_b = True
+            else:
+                if not_have_red:
+                    portal_r = PortalRed(player.rect.x, player.rect.y, d)
+                    not_have_red = False
+                    p_r = True
 
-    camera.update(player)
-    for sprite in all_sprites:
-        camera.apply(sprite)
+
+    # camera.update(player)
+    # for sprite in all_sprites:
+    #     camera.apply(sprite)
+    if p_b:
+        portal_b.update()
+    if p_r:
+        portal_r.update()
     walls_group.draw(screen)
     empty_group.draw(screen)
     player_group.draw(screen)
+    portals_group.draw(screen)
     pygame.display.flip()
 terminate()
