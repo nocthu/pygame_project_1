@@ -40,10 +40,10 @@ def load_image(name, colorkey=None):
 tile_width = tile_height = 50
 wall_image = pygame.transform.scale(load_image('wall_1.png'), (tile_width, tile_height))
 empty_image = pygame.transform.scale(load_image('wall_2.png'), (tile_width, tile_height))
-player_image = load_image('mario.png', -1)
-portal_blue_image = pygame.transform.scale(load_image('portal_blue.png', -1), (tile_width // 2, tile_height // 2))
-portal_red_image = pygame.transform.scale(load_image('portal_red.png', -1), (tile_width // 2, tile_height // 2))
-directions = {0: 0, 'right': (10, 0), 'left': (-10, 0), 'up': (0, -10), 'down': (0, 10)}
+player_image = pygame.transform.scale(load_image('player.png'), (40, 40))
+portal_blue_image = pygame.transform.scale(load_image('portal_blue.png', -1), (25, 25))
+portal_red_image = pygame.transform.scale(load_image('portal_red.png', -1), (25, 25))
+directions = {'right': (2, 0), 'left': (-2, 0), 'up': (0, -2), 'down': (0, 2)}
 
 
 def terminate():
@@ -58,6 +58,36 @@ def start_screen():
                   "приходится выводить их построчно"]
 
     # fon = pygame.transform.scale(load_image('logo.jpg'), (width, height))
+    fon = load_image('logo.jpg')
+    screen.blit(fon, (0, 100))
+    font = pygame.font.Font(None, 30)
+    text_coord = 100
+    for line in intro_text:
+        string_rendered = font.render(line, 1, pygame.Color('red'))
+        intro_rect = string_rendered.get_rect()
+        text_coord += 10
+        intro_rect.top = text_coord
+        intro_rect.x = 10
+        text_coord += intro_rect.height
+        screen.blit(string_rendered, intro_rect)
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+            elif event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
+                return  # начинаем игру
+        pygame.display.flip()
+        clock.tick(FPS)
+
+
+def end_screen():
+    screen.fill(pygame.Color("black"))
+    intro_text = ["GAME OVER", "",
+                  "Разработчики:",
+                  "Скранжевская Ксения",
+                  "Евсеев Григорий"]
+
     fon = load_image('logo.jpg')
     screen.blit(fon, (0, 100))
     font = pygame.font.Font(None, 30)
@@ -130,22 +160,47 @@ class Player(pygame.sprite.Sprite):
     def __init__(self, pos_x, pos_y):
         super().__init__(player_group, all_sprites)
         self.image = player_image
-        self.rect = self.image.get_rect().move(tile_width * pos_x + 15, tile_height * pos_y + 5)
+        self.rect = self.image.get_rect().move(tile_width * pos_x, tile_height * pos_y)
+        self.n = 'right'
 
-    def update(self, x, y):
+    def move_hor(self, x, y, dir):
+        if dir != self.n:
+            self.n = dir
+            self.image = pygame.transform.flip(self.image, 180, 0)
         self.rect = self.rect.move(x, y)
         if pygame.sprite.spritecollideany(self, walls_group):
             self.rect = self.rect.move(-x, -y)
         if pygame.sprite.spritecollideany(self, b_portal_group):
-            if portal_r.rect.x > portal_b.rect.x:
-                self.rect = self.image.get_rect().move(portal_r.rect.x - 30, portal_r.rect.y)
-            else:
-                self.rect = self.image.get_rect().move(portal_r.rect.x + 30, portal_r.rect.y)
+            if portal_r:
+                if portal_r.rect.x > portal_b.rect.x:
+                    # if portal_r.rect.y > portal_b.rect.y:
+                    self.rect = self.image.get_rect().move(portal_r.rect.x - 50, portal_r.rect.y - 10)
+                else:
+                    self.rect = self.image.get_rect().move(portal_r.rect.x + 27, portal_r.rect.y - 10)
         if pygame.sprite.spritecollideany(self, r_portal_group):
-            if portal_b.rect.x > portal_r.rect.x:
-                self.rect = self.image.get_rect().move(portal_b.rect.x - 30, portal_b.rect.y)
-            else:
-                self.rect = self.image.get_rect().move(portal_b.rect.x + 30, portal_b.rect.y)
+            if portal_b:
+                if portal_b.rect.x > portal_r.rect.x:
+                    self.rect = self.image.get_rect().move(portal_b.rect.x - 50, portal_b.rect.y - 10)
+                else:
+                    self.rect = self.image.get_rect().move(portal_b.rect.x + 27, portal_b.rect.y - 10)
+
+    def move_ver(self, x, y):
+        self.rect = self.rect.move(x, y)
+        if pygame.sprite.spritecollideany(self, walls_group):
+            self.rect = self.rect.move(-x, -y)
+        if pygame.sprite.spritecollideany(self, b_portal_group):
+            if portal_r:
+                if portal_r.rect.x > portal_b.rect.x:
+                    # if portal_r.rect.y > portal_b.rect.y:
+                    self.rect = self.image.get_rect().move(portal_r.rect.x - 50, portal_r.rect.y - 10)
+                else:
+                    self.rect = self.image.get_rect().move(portal_r.rect.x + 27, portal_r.rect.y - 10)
+        if pygame.sprite.spritecollideany(self, r_portal_group):
+            if portal_b:
+                if portal_b.rect.x > portal_r.rect.x:
+                    self.rect = self.image.get_rect().move(portal_b.rect.x - 50, portal_b.rect.y - 10)
+                else:
+                    self.rect = self.image.get_rect().move(portal_b.rect.x + 27, portal_b.rect.y - 10)
 
 
 class AnimatedSprite(pygame.sprite.Sprite):
@@ -176,8 +231,8 @@ class PortalBlue(pygame.sprite.Sprite):
         super().__init__(b_portal_group)
         self.image = portal_blue_image
         self.rect = self.image.get_rect().move(pos_x, pos_y)
-        self.vx = directions[d][0]
-        self.vy = directions[d][1]
+        self.vx = directions[d][0] * 5
+        self.vy = directions[d][1] * 5
 
     def update(self):
         if not pygame.sprite.spritecollideany(self, walls_group):
@@ -189,8 +244,8 @@ class PortalRed(pygame.sprite.Sprite):
         super().__init__(r_portal_group)
         self.image = portal_red_image
         self.rect = self.image.get_rect().move(pos_x, pos_y)
-        self.vx = directions[d][0]
-        self.vy = directions[d][1]
+        self.vx = directions[d][0] * 5
+        self.vy = directions[d][1] * 5
 
     def update(self):
         if not pygame.sprite.spritecollideany(self, walls_group):
@@ -223,6 +278,8 @@ p_b = False
 p_r = False
 not_have_blue = True
 not_have_red = True
+ver = False
+hor = False
 while running:
     screen.fill(pygame.Color("white"))
     for event in pygame.event.get():
@@ -230,26 +287,37 @@ while running:
             running = False
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_UP:
-                player.update(0, -10)
+                ver = True
+                direction = 'up'
             if event.key == pygame.K_DOWN:
-                player.update(0, 10)
+                ver = True
+                direction = 'down'
             if event.key == pygame.K_LEFT:
-                player.update(-10, 0)
+                hor = True
                 d = 'left'
             if event.key == pygame.K_RIGHT:
-                player.update(10, 0)
+                hor = True
                 d = 'right'
+        if event.type == pygame.KEYUP:
+            if event.key == pygame.K_UP:
+                ver = False
+            if event.key == pygame.K_DOWN:
+                ver = False
+            if event.key == pygame.K_LEFT:
+                hor = False
+            if event.key == pygame.K_RIGHT:
+                hor = False
         if event.type == pygame.MOUSEBUTTONDOWN:
             if not_have_blue:
                 b_portal_group = pygame.sprite.Group()
-                portal_b = PortalBlue(player.rect.x, player.rect.y, d)
+                portal_b = PortalBlue(player.rect.x, player.rect.y + 10, d)
                 not_have_blue = False
                 not_have_red = True
                 p_b = True
             else:
                 if not_have_red:
                     r_portal_group = pygame.sprite.Group()
-                    portal_r = PortalRed(player.rect.x, player.rect.y, d)
+                    portal_r = PortalRed(player.rect.x, player.rect.y + 10, d)
                     not_have_red = False
                     p_r = True
                     not_have_blue = True
@@ -257,6 +325,10 @@ while running:
     # camera.update(player)
     # for sprite in all_sprites:
     #     camera.apply(sprite)
+    if ver:
+        player.move_ver(0, directions[direction][1])
+    if hor:
+        player.move_hor(directions[d][0], 0, d)
     if p_b:
         portal_b.update()
     if p_r:
@@ -267,4 +339,5 @@ while running:
     b_portal_group.draw(screen)
     r_portal_group.draw(screen)
     pygame.display.flip()
+end_screen()
 terminate()
