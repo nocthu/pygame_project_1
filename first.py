@@ -19,6 +19,11 @@ ver = False
 hor = False
 portal_b = False
 portal_r = False
+level = 1
+
+levels = {2: ['map2.txt', 'wall_5.png', 'wall_7.png'], 3: ['map3.txt', 'wall_6.png', 'wall_10.png'],
+          4: ['map4.txt', 'wall_14.png', 'wall_15.png'], 5: ['map5.txt', 'wall_9.png', 'wall_16.png'],
+          6: ['map6.txt', 'wall_11.png', 'wall_8.png']}
 
 player = None
 all_sprites = pygame.sprite.Group()
@@ -48,7 +53,7 @@ def load_image(name, colorkey=None):
 
 
 tile_width = tile_height = 50
-wall_image = pygame.transform.scale(load_image('wall_1.png'), (tile_width, tile_height))
+wall_image = pygame.transform.scale(load_image('wall_3.png'), (tile_width, tile_height))
 empty_image = pygame.transform.scale(load_image('wall_2.png'), (tile_width, tile_height))
 player_image = pygame.transform.scale(load_image("pl.bmp", -1), (150, 150))
 portal_blue_image = pygame.transform.scale(load_image('portal_blue.png', -1), (25, 25))
@@ -414,6 +419,9 @@ while running:
         player.move_hor(directions[d][0], 0, d)
         player.moving(d)
         if player.rect.x == door.rect.x:
+            level += 1
+            if level == 7:
+                break
             all_sprites = pygame.sprite.Group()
             walls_group = pygame.sprite.Group()
             empty_group = pygame.sprite.Group()
@@ -421,7 +429,9 @@ while running:
             b_portal_group = pygame.sprite.Group()
             r_portal_group = pygame.sprite.Group()
             doors_group = pygame.sprite.Group()
-            player, door, level_x, level_y = generate_level(load_level('map2.txt'))
+            wall_image = pygame.transform.scale(load_image(levels[level][1]), (tile_width, tile_height))
+            empty_image = pygame.transform.scale(load_image(levels[level][2]), (tile_width, tile_height))
+            player, door, level_x, level_y = generate_level(load_level(levels[level][0]))
     if p_b:
         portal_b.update()
     if p_r:
