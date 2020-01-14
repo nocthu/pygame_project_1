@@ -10,6 +10,14 @@ FPS = 30
 pygame.mouse.set_visible(False)
 clock = pygame.time.Clock()
 
+d = 'right'
+p_b = False
+p_r = False
+not_have_blue = True
+not_have_red = True
+ver = False
+hor = False
+
 player = None
 all_sprites = pygame.sprite.Group()
 walls_group = pygame.sprite.Group()
@@ -17,7 +25,8 @@ empty_group = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
 b_portal_group = pygame.sprite.Group()
 r_portal_group = pygame.sprite.Group()
-# player = AnimatedSprite(load_image("dino.png"), 8, 2, 50, 50)
+
+moving_group = pygame.sprite.Group()
 
 
 def load_image(name, colorkey=None):
@@ -40,10 +49,10 @@ def load_image(name, colorkey=None):
 tile_width = tile_height = 50
 wall_image = pygame.transform.scale(load_image('wall_1.png'), (tile_width, tile_height))
 empty_image = pygame.transform.scale(load_image('wall_2.png'), (tile_width, tile_height))
-player_image = pygame.transform.scale(load_image('player.png'), (40, 40))
+player_image = pygame.transform.scale(load_image("pl.bmp", -1), (150, 150))
 portal_blue_image = pygame.transform.scale(load_image('portal_blue.png', -1), (25, 25))
 portal_red_image = pygame.transform.scale(load_image('portal_red.png', -1), (25, 25))
-directions = {'right': (2, 0), 'left': (-2, 0), 'up': (0, -2), 'down': (0, 2)}
+directions = {'right': (5, 0), 'left': (-5, 0), 'up': (0, -5), 'down': (0, 5)}
 
 
 def terminate():
@@ -160,29 +169,39 @@ class Player(pygame.sprite.Sprite):
     def __init__(self, pos_x, pos_y):
         super().__init__(player_group, all_sprites)
         self.image = player_image
-        self.rect = self.image.get_rect().move(tile_width * pos_x, tile_height * pos_y)
+        # self.rect = self.image.get_rect().move(tile_width * pos_x, tile_height * pos_y)
         self.n = 'right'
+        self.frames = []
+        self.cut_sheet(player_image, 4, 4)
+        self.cur_frame = 0
+        self.image = self.frames[self.cur_frame]
+        self.rect = self.rect.move(tile_width * pos_x, tile_height * pos_y)
 
-    def move_hor(self, x, y, dir):
-        if dir != self.n:
-            self.n = dir
-            self.image = pygame.transform.flip(self.image, 180, 0)
-        self.rect = self.rect.move(x, y)
-        if pygame.sprite.spritecollideany(self, walls_group):
-            self.rect = self.rect.move(-x, -y)
-        if pygame.sprite.spritecollideany(self, b_portal_group):
-            if portal_r:
-                if portal_r.rect.x > portal_b.rect.x:
-                    # if portal_r.rect.y > portal_b.rect.y:
-                    self.rect = self.image.get_rect().move(portal_r.rect.x - 50, portal_r.rect.y - 10)
-                else:
-                    self.rect = self.image.get_rect().move(portal_r.rect.x + 27, portal_r.rect.y - 10)
-        if pygame.sprite.spritecollideany(self, r_portal_group):
-            if portal_b:
-                if portal_b.rect.x > portal_r.rect.x:
-                    self.rect = self.image.get_rect().move(portal_b.rect.x - 50, portal_b.rect.y - 10)
-                else:
-                    self.rect = self.image.get_rect().move(portal_b.rect.x + 27, portal_b.rect.y - 10)
+    def cut_sheet(self, sheet, columns, rows):
+        self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
+                                sheet.get_height() // rows)
+        for j in range(rows):
+            for i in range(columns):
+                frame_location = (self.rect.w * i, self.rect.h * j)
+                self.frames.append(sheet.subsurface(pygame.Rect(
+                    frame_location, self.rect.size)))
+        self.down = self.frames[:4]
+        self.up = self.frames[4:8]
+        self.left = self.frames[8:12]
+        self.right = self.frames[12:]
+
+    def moving(self, d):
+        move = 'right'
+        if d == 'left':
+            move = self.left
+        elif d == 'right':
+            move = self.right
+        elif d == 'up':
+            move = self.up
+        elif d == 'down':
+            move = self.down
+        self.cur_frame = (self.cur_frame + 1) % len(move)
+        self.image = move[self.cur_frame]
 
     def move_ver(self, x, y):
         self.rect = self.rect.move(x, y)
@@ -202,28 +221,23 @@ class Player(pygame.sprite.Sprite):
                 else:
                     self.rect = self.image.get_rect().move(portal_b.rect.x + 27, portal_b.rect.y - 10)
 
-
-class AnimatedSprite(pygame.sprite.Sprite):
-    def __init__(self, sheet, columns, rows, x, y):
-        super().__init__(all_sprites)
-        self.frames = []
-        self.cut_sheet(sheet, columns, rows)
-        self.cur_frame = 0
-        self.image = self.frames[self.cur_frame]
+    def move_hor(self, x, y, dir):
         self.rect = self.rect.move(x, y)
-
-    def cut_sheet(self, sheet, columns, rows):
-        self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
-                                sheet.get_height() // rows)
-        for j in range(rows):
-            for i in range(columns):
-                frame_location = (self.rect.w * i, self.rect.h * j)
-                self.frames.append(sheet.subsurface(pygame.Rect(
-                    frame_location, self.rect.size)))
-
-    def update(self):
-        self.cur_frame = (self.cur_frame + 1) % len(self.frames)
-        self.image = self.frames[self.cur_frame]
+        if pygame.sprite.spritecollideany(self, walls_group):
+            self.rect = self.rect.move(-x, -y)
+        if pygame.sprite.spritecollideany(self, b_portal_group):
+            if portal_r:
+                if portal_r.rect.x > portal_b.rect.x:
+                    # if portal_r.rect.y > portal_b.rect.y:
+                    self.rect = self.image.get_rect().move(portal_r.rect.x - 50, portal_r.rect.y - 10)
+                else:
+                    self.rect = self.image.get_rect().move(portal_r.rect.x + 27, portal_r.rect.y - 10)
+        if pygame.sprite.spritecollideany(self, r_portal_group):
+            if portal_b:
+                if portal_b.rect.x > portal_r.rect.x:
+                    self.rect = self.image.get_rect().move(portal_b.rect.x - 50, portal_b.rect.y - 10)
+                else:
+                    self.rect = self.image.get_rect().move(portal_b.rect.x + 27, portal_b.rect.y - 10)
 
 
 class PortalBlue(pygame.sprite.Sprite):
@@ -231,8 +245,8 @@ class PortalBlue(pygame.sprite.Sprite):
         super().__init__(b_portal_group)
         self.image = portal_blue_image
         self.rect = self.image.get_rect().move(pos_x, pos_y)
-        self.vx = directions[d][0] * 5
-        self.vy = directions[d][1] * 5
+        self.vx = directions[d][0] * 2
+        self.vy = directions[d][1] * 2
 
     def update(self):
         if not pygame.sprite.spritecollideany(self, walls_group):
@@ -244,8 +258,8 @@ class PortalRed(pygame.sprite.Sprite):
         super().__init__(r_portal_group)
         self.image = portal_red_image
         self.rect = self.image.get_rect().move(pos_x, pos_y)
-        self.vx = directions[d][0] * 5
-        self.vy = directions[d][1] * 5
+        self.vx = directions[d][0] * 2
+        self.vy = directions[d][1] * 2
 
     def update(self):
         if not pygame.sprite.spritecollideany(self, walls_group):
@@ -263,7 +277,6 @@ def generate_level(level):
             elif level[y][x] == '@':
                 Empty('empty', x, y)
                 new_player = Player(x, y)
-                # new_player = AnimatedSprite(load_image("dino.png"), 8, 2, x, y)
     # вернем игрока, а также размер поля в клетках
     return new_player, x, y
 
@@ -271,15 +284,6 @@ def generate_level(level):
 start_screen()
 camera = Camera()
 player, level_x, level_y = generate_level(load_level('map.txt'))
-portal = None
-# board = Board(10, 10, 10)
-d = 'right'
-p_b = False
-p_r = False
-not_have_blue = True
-not_have_red = True
-ver = False
-hor = False
 while running:
     screen.fill(pygame.Color("white"))
     for event in pygame.event.get():
@@ -327,17 +331,30 @@ while running:
     #     camera.apply(sprite)
     if ver:
         player.move_ver(0, directions[direction][1])
+        player.moving(direction)
+        if player.rect.y == 500:
+            player, level_x, level_y = generate_level(load_level('map2.txt'))
     if hor:
         player.move_hor(directions[d][0], 0, d)
+        player.moving(d)
+        if player.rect.x == 750:
+            all_sprites = pygame.sprite.Group()
+            walls_group = pygame.sprite.Group()
+            empty_group = pygame.sprite.Group()
+            player_group = pygame.sprite.Group()
+            b_portal_group = pygame.sprite.Group()
+            r_portal_group = pygame.sprite.Group()
+            player, level_x, level_y = generate_level(load_level('map2.txt'))
     if p_b:
         portal_b.update()
     if p_r:
         portal_r.update()
+    clock.tick(10)
     walls_group.draw(screen)
     empty_group.draw(screen)
-    player_group.draw(screen)
     b_portal_group.draw(screen)
     r_portal_group.draw(screen)
+    player_group.draw(screen)
     pygame.display.flip()
 end_screen()
 terminate()
