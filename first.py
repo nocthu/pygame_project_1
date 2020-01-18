@@ -20,6 +20,8 @@ hor = False
 portal_b = False
 portal_r = False
 level = 1
+global a
+a = 'right'
 
 levels = {2: ['map2.txt', 'wall_5.png', 'wall_7.png'], 3: ['map3.txt', 'wall_6.png', 'wall_10.png'],
           4: ['map4.txt', 'wall_14.png', 'wall_15.png'], 5: ['map5.txt', 'wall_9.png', 'wall_16.png'],
@@ -38,7 +40,7 @@ doors_group = pygame.sprite.Group()
 def load_image(name, colorkey=None):
     fullname = os.path.join('data', name)
     try:
-        image = pygame.image.load(fullname).convert()
+        image = pygame.image.load(fullname)
     except pygame.error as message:
         print('Cannot load image:', name)
         raise SystemExit(message)
@@ -47,8 +49,7 @@ def load_image(name, colorkey=None):
         if colorkey == -1:
             colorkey = image.get_at((0, 0))
         image.set_colorkey(colorkey)
-    else:
-        image = image.convert_alpha()
+    image = image.convert_alpha()
     return image
 
 
@@ -56,10 +57,17 @@ tile_width = tile_height = 60
 wall_image = pygame.transform.scale(load_image('wall_3.png'), (tile_width, tile_height))
 empty_image = pygame.transform.scale(load_image('wall_2.png'), (tile_width, tile_height))
 player_image = pygame.transform.scale(load_image("pl.bmp", -1), (150, 150))
-portal_blue_image = pygame.transform.scale(load_image('portal_blue.png', -1), (15, 25))
-portal_red_image = pygame.transform.scale(load_image('portal_red.png', -1), (15, 25))
+portal_blue_image = {'right': pygame.transform.scale(load_image('portal_blue.png', -1), (15, 25)),
+                     'left':  pygame.transform.scale(load_image('portal_blue_left.png', -1), (15, 25)),
+                     'up':  pygame.transform.scale(load_image('portal_blue_up.png', -1), (15, 25)),
+                     'down':  pygame.transform.scale(load_image('portal_blue_down.png', -1), (15, 25))}
+portal_red_image = {'right': pygame.transform.scale(load_image('portal_red.png', -1), (15, 25)),
+                    'left':  pygame.transform.scale(load_image('portal_red_left.png', -1), (15, 25)),
+                    'up':  pygame.transform.scale(load_image('portal_red_up.png', -1), (15, 25)),
+                    'down':  pygame.transform.scale(load_image('portal_red_down.png', -1), (15, 25))}
 directions = {'right': (5, 0), 'left': (-5, 0), 'up': (0, -5), 'down': (0, 5)}
 door_image = pygame.transform.scale(load_image('door.png'), (tile_width, tile_height))
+
 
 def terminate():
     pygame.quit()
@@ -200,85 +208,66 @@ class Player(pygame.sprite.Sprite):
 
     def move_ver(self, x, y):
         self.rect = self.rect.move(x, y)
+        s = 0
         if pygame.sprite.spritecollideany(self, walls_group):
             self.rect = self.rect.move(-x, -y)
         if pygame.sprite.spritecollideany(self, b_portal_group):
             mine = portal_b
             new = portal_r
             if new:
-                if new.rect.y == mine.rect.y:
-                    py = 0
-                elif new.direction == 'down':
-                    py = -1
-                elif new.direction() == 'up':
+                if new.rect.y < mine.rect.y:
                     py = 1
-                else:
+                elif new.rect.y == mine.rect.y:
                     py = 0
-
-                if new.rect.x == mine.rect.x:
-                    px = 0
-                elif new.direction() == 'right':
-                    px = -1
-                elif new.direction() == 'left':
-                    px = 1
                 else:
+                    py = -1
+
+                if new.rect.x > mine.rect.x:
+                    px = -1
+                elif new.rect.x == mine.rect.x:
                     px = 0
-                self.rect = self.image.get_rect().move(new.rect.x + px * portal_red_image.get_width(),
-                                                       new.rect.y + py * portal_red_image.get_height())
+                else:
+                    px = 1
+                x = new.rect.x + px * s
+                y = new.rect.y + py * s
+                self.rect = self.image.get_rect().move(x, y)
 
         if pygame.sprite.spritecollideany(self, r_portal_group):
             mine = portal_r
             new = portal_b
-            # if new:
-            #     if new.rect.y > mine.rect.y:
-            #         py = -1
-            #     elif new.rect.y == mine.rect.y:
-            #         py = 0
-            #     else:
-            #         py = 1
-            #
-            #     if new.rect.x > mine.rect.x:
-            #         px = -1
-            #     elif new.rect.x == mine.rect.x:
-            #         px = 0
-            #     else:
-            #         px = 1
-            #     self.rect = self.image.get_rect().move(new.rect.x + px * 20, new.rect.y + py * 20)
             if new:
-                if new.rect.y == mine.rect.y:
-                    py = 0
-                elif new.direction == 'down':
-                    py = -1
-                elif new.direction() == 'up':
+                if new.rect.y < mine.rect.y:
                     py = 1
-                else:
+                elif new.rect.y == mine.rect.y:
                     py = 0
-
-                if new.rect.x == mine.rect.x:
-                    px = 0
-                elif new.direction() == 'right':
-                    px = -1
-                elif new.direction() == 'left':
-                    px = 1
                 else:
-                    px = 0
-                self.rect = self.image.get_rect().move(new.rect.x + px * portal_red_image.get_width(),
-                                                       new.rect.y + portal_red_image.get_height() * py)
+                    py = -1
 
-    def move_hor(self, x, y, dir):
+                if new.rect.x > mine.rect.x:
+                    px = -1
+                elif new.rect.x == mine.rect.x:
+                    px = 0
+                else:
+                    px = 1
+                x = new.rect.x + px * s
+                y = new.rect.y + py * s
+                self.rect = self.image.get_rect().move(x, y)
+
+    def move_hor(self, x, y):
         self.rect = self.rect.move(x, y)
+        s = 0
         if pygame.sprite.spritecollideany(self, walls_group):
             self.rect = self.rect.move(-x, -y)
         if pygame.sprite.spritecollideany(self, b_portal_group):
             mine = portal_b
             new = portal_r
             if new:
-                if new.rect.y > mine.rect.y:
-                    py = -1
+                if new.rect.y < mine.rect.y:
+                    py = 1
                 elif new.rect.y == mine.rect.y:
                     py = 0
                 else:
-                    py = 1
+                    py = -1
 
                 if new.rect.x > mine.rect.x:
                     px = -1
@@ -286,18 +275,20 @@ class Player(pygame.sprite.Sprite):
                     px = 0
                 else:
                     px = 1
-                self.rect = self.image.get_rect().move(new.rect.x + px * 40, new.rect.y + py * 15)
+                x = new.rect.x + px * s
+                y = new.rect.y + py * s
+                self.rect = self.image.get_rect().move(x, y)
 
         if pygame.sprite.spritecollideany(self, r_portal_group):
             mine = portal_r
             new = portal_b
             if new:
-                if new.rect.y > mine.rect.y:
-                    py = -1
+                if new.rect.y < mine.rect.y:
+                    py = 1
                 elif new.rect.y == mine.rect.y:
                     py = 0
                 else:
-                    py = 1
+                    py = -1
 
                 if new.rect.x > mine.rect.x:
                     px = -1
@@ -305,45 +296,42 @@ class Player(pygame.sprite.Sprite):
                     px = 0
                 else:
                     px = 1
-                self.rect = self.image.get_rect().move(new.rect.x + px * 40, new.rect.y + py * 15)
+                x = new.rect.x + px * s
+                y = new.rect.y + py * s
+                self.rect = self.image.get_rect().move(x, y)
 
 
 class PortalBlue(pygame.sprite.Sprite):
     def __init__(self, pos_x, pos_y, d):
         super().__init__(b_portal_group)
-        self.image = portal_blue_image
+        self.d = d
+        self.image = portal_blue_image[self.d]
         self.rect = self.image.get_rect().move(pos_x, pos_y)
         self.vx = directions[d][0] * 2
         self.vy = directions[d][1] * 2
-        self.d = d
 
     def update(self):
         if not pygame.sprite.spritecollideany(self, walls_group):
             self.rect = self.rect.move(self.vx, self.vy)
-
-    def direction(self):
-        return self.d
 
 
 class PortalRed(pygame.sprite.Sprite):
     def __init__(self, pos_x, pos_y, d):
         super().__init__(r_portal_group)
-        self.image = portal_red_image
+        self.d = d
+        print(d)
+        self.image = portal_red_image[self.d]
         self.rect = self.image.get_rect().move(pos_x, pos_y)
         self.vx = directions[d][0] * 2
         self.vy = directions[d][1] * 2
-        self.d = d
 
     def update(self):
         if not pygame.sprite.spritecollideany(self, walls_group):
             self.rect = self.rect.move(self.vx, self.vy)
 
-    def direction(self):
-        return self.d
-
 
 def generate_level(level):
-    new_player, door, x, y = None, None, None, None
+    new_player, new_door, x, y = None, None, None, None
     for y in range(len(level)):
         for x in range(len(level[y])):
             if level[y][x] == '.':
@@ -354,9 +342,9 @@ def generate_level(level):
                 Empty('empty', x, y)
                 new_player = Player(x, y)
             elif level[y][x] == 'd':
-                door = Door(x, y)
+                new_door = Door(x, y)
     # вернем игрока, а также размер поля в клетках
-    return new_player, door, x, y
+    return new_player, new_door, x, y
 
 
 start_screen()
@@ -369,11 +357,9 @@ while running:
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_UP:
                 ver = True
-                direction = 'up'
                 d = 'up'
             if event.key == pygame.K_DOWN:
                 ver = True
-                direction = 'down'
                 d = 'down'
             if event.key == pygame.K_LEFT:
                 hor = True
@@ -393,23 +379,23 @@ while running:
         if event.type == pygame.MOUSEBUTTONDOWN:
             if not_have_blue:
                 b_portal_group = pygame.sprite.Group()
-                portal_b = PortalBlue(player.rect.x, player.rect.y + 10, d)
+                portal_b = PortalBlue(player.rect.x, player.rect.y, d)
                 not_have_blue = False
                 not_have_red = True
                 p_b = True
             else:
                 if not_have_red:
                     r_portal_group = pygame.sprite.Group()
-                    portal_r = PortalRed(player.rect.x, player.rect.y + 10, d)
+                    portal_r = PortalRed(player.rect.x, player.rect.y, d)
                     not_have_red = False
                     p_r = True
                     not_have_blue = True
 
     if ver:
-        player.move_ver(0, directions[direction][1])
-        player.moving(direction)
+        player.move_ver(0, directions[d][1])
+        player.moving(d)
     if hor:
-        player.move_hor(directions[d][0], 0, d)
+        player.move_hor(directions[d][0], 0)
         player.moving(d)
         if player.rect.x == door.rect.x:
             level += 1
