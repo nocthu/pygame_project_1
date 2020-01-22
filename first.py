@@ -10,7 +10,7 @@ FPS = 30
 pygame.mouse.set_visible(False)
 clock = pygame.time.Clock()
 
-d = 'right'
+d = 'down'
 p_b = False
 p_r = False
 not_have_blue = True
@@ -22,6 +22,7 @@ portal_r = False
 level = 1
 global a
 a = 'right'
+can_push_button = False
 
 levels = {2: ['map2.txt', 'wall_5.png', 'wall_7.png'], 3: ['map3.txt', 'wall_6.png', 'wall_10.png'],
           4: ['map4.txt', 'wall_14.png', 'wall_15.png'], 5: ['map5.txt', 'wall_9.png', 'wall_16.png'],
@@ -35,6 +36,8 @@ player_group = pygame.sprite.Group()
 b_portal_group = pygame.sprite.Group()
 r_portal_group = pygame.sprite.Group()
 doors_group = pygame.sprite.Group()
+obstacles_group = pygame.sprite.Group()
+button_group = pygame.sprite.Group()
 
 
 def load_image(name, colorkey=None):
@@ -59,14 +62,20 @@ empty_image = pygame.transform.scale(load_image('wall_2.png'), (tile_width, tile
 player_image = pygame.transform.scale(load_image("pl.bmp", -1), (150, 150))
 portal_blue_image = {'right': pygame.transform.scale(load_image('portal_blue.png', -1), (15, 25)),
                      'left':  pygame.transform.scale(load_image('portal_blue_left.png', -1), (15, 25)),
-                     'up':  pygame.transform.scale(load_image('portal_blue_up.png', -1), (15, 25)),
-                     'down':  pygame.transform.scale(load_image('portal_blue_down.png', -1), (15, 25))}
+                     'up':  pygame.transform.scale(load_image('portal_blue_up.png', -1), (25, 15)),
+                     'down':  pygame.transform.scale(load_image('portal_blue_down.png', -1), (25, 15))}
 portal_red_image = {'right': pygame.transform.scale(load_image('portal_red.png', -1), (15, 25)),
                     'left':  pygame.transform.scale(load_image('portal_red_left.png', -1), (15, 25)),
-                    'up':  pygame.transform.scale(load_image('portal_red_up.png', -1), (15, 25)),
-                    'down':  pygame.transform.scale(load_image('portal_red_down.png', -1), (15, 25))}
+                    'up':  pygame.transform.scale(load_image('portal_red_up.png', -1), (25, 15)),
+                    'down':  pygame.transform.scale(load_image('portal_red_down.png', -1), (25, 15))}
 directions = {'right': (5, 0), 'left': (-5, 0), 'up': (0, -5), 'down': (0, 5)}
 door_image = pygame.transform.scale(load_image('door.png'), (tile_width, tile_height))
+obstacles = {'c': pygame.transform.scale(load_image('cage.png'), (tile_width, tile_height))}
+button_image = {0: pygame.transform.scale(load_image('button_red.png', -1), (tile_width, tile_height // 2)),
+                1: pygame.transform.scale(load_image('button_green.png', -1), (tile_width, tile_height // 2))}
+nap = [['left', 'right'], ['up', 'down']]
+button_coords = []
+cage_coords = []
 
 
 def terminate():
@@ -156,7 +165,7 @@ class Wall(pygame.sprite.Sprite):
 
 
 class Empty(pygame.sprite.Sprite):
-    def __init__(self, tile_type, pos_x, pos_y):
+    def __init__(self, pos_x, pos_y):
         super().__init__(empty_group, all_sprites)
         self.image = empty_image
         self.rect = self.image.get_rect().move(tile_width * pos_x, tile_height * pos_y)
@@ -166,6 +175,20 @@ class Door(pygame.sprite.Sprite):
     def __init__(self, pos_x, pos_y):
         super().__init__(doors_group, all_sprites)
         self.image = door_image
+        self.rect = self.image.get_rect().move(tile_width * pos_x, tile_height * pos_y)
+
+
+class Obstacles(pygame.sprite.Sprite):
+    def __init__(self, pos_x, pos_y, type):
+        super().__init__(obstacles_group, all_sprites)
+        self.image = obstacles[type]
+        self.rect = self.image.get_rect().move(tile_width * pos_x, tile_height * pos_y)
+
+
+class Button(pygame.sprite.Sprite):
+    def __init__(self, pos_x, pos_y, c):
+        super().__init__(button_group, all_sprites)
+        self.image = button_image[c]
         self.rect = self.image.get_rect().move(tile_width * pos_x, tile_height * pos_y)
 
 
@@ -208,97 +231,98 @@ class Player(pygame.sprite.Sprite):
 
     def move_ver(self, x, y):
         self.rect = self.rect.move(x, y)
-        s = 0
         if pygame.sprite.spritecollideany(self, walls_group):
             self.rect = self.rect.move(-x, -y)
+        if pygame.sprite.spritecollideany(self, obstacles_group):
+            self.rect = self.rect.move(-x, -y)
+        if pygame.sprite.spritecollideany(self, button_group):
+            font = pygame.font.Font(None, 50)
+            num = 'Press F to use the button'
+            text = font.render(num, 1, pygame.Color("red"))
+            screen.blit(text, (120, 70))
         if pygame.sprite.spritecollideany(self, b_portal_group):
             mine = portal_b
             new = portal_r
             if new:
-                if new.rect.y < mine.rect.y:
-                    py = 1
+                if (mine.direction() in nap[0] and new.direction() in nap[1]) or (mine.direction() in nap[1] and new.direction() in nap[0]):
+                    py = 0
+                elif new.rect.y < mine.rect.y:
+                    py = 30
                 elif new.rect.y == mine.rect.y:
                     py = 0
                 else:
-                    py = -1
+                    py = -player_image.get_height() + 110
 
                 if new.rect.x > mine.rect.x:
-                    px = -1
+                    px = -player_image.get_width() + 110
                 elif new.rect.x == mine.rect.x:
                     px = 0
                 else:
-                    px = 1
-                x = new.rect.x + px * s
-                y = new.rect.y + py * s
-                self.rect = self.image.get_rect().move(x, y)
+                    px = 30
+                self.rect = self.rect.move(new.rect.x - self.rect.x + px, new.rect.y - self.rect.y + py)
 
         if pygame.sprite.spritecollideany(self, r_portal_group):
             mine = portal_r
             new = portal_b
             if new:
                 if new.rect.y < mine.rect.y:
-                    py = 1
+                    py = 30
                 elif new.rect.y == mine.rect.y:
                     py = 0
                 else:
-                    py = -1
+                    py = -player_image.get_height() + 110
 
                 if new.rect.x > mine.rect.x:
-                    px = -1
+                    px = -player_image.get_width() + 110
                 elif new.rect.x == mine.rect.x:
                     px = 0
                 else:
-                    px = 1
-                x = new.rect.x + px * s
-                y = new.rect.y + py * s
-                self.rect = self.image.get_rect().move(x, y)
+                    px = 30
+                self.rect = self.rect.move(new.rect.x - self.rect.x + px, new.rect.y - self.rect.y + py)
 
     def move_hor(self, x, y):
         self.rect = self.rect.move(x, y)
-        s = 0
         if pygame.sprite.spritecollideany(self, walls_group):
+            self.rect = self.rect.move(-x, -y)
+        if pygame.sprite.spritecollideany(self, obstacles_group):
             self.rect = self.rect.move(-x, -y)
         if pygame.sprite.spritecollideany(self, b_portal_group):
             mine = portal_b
             new = portal_r
             if new:
                 if new.rect.y < mine.rect.y:
-                    py = 1
+                    py = 30
                 elif new.rect.y == mine.rect.y:
                     py = 0
                 else:
-                    py = -1
+                    py = -player_image.get_height() + 110
 
                 if new.rect.x > mine.rect.x:
-                    px = -1
+                    px = -player_image.get_width() + 110
                 elif new.rect.x == mine.rect.x:
                     px = 0
                 else:
-                    px = 1
-                x = new.rect.x + px * s
-                y = new.rect.y + py * s
-                self.rect = self.image.get_rect().move(x, y)
+                    px = 30
+                self.rect = self.rect.move(new.rect.x - self.rect.x + px, new.rect.y - self.rect.y + py)
 
         if pygame.sprite.spritecollideany(self, r_portal_group):
             mine = portal_r
             new = portal_b
             if new:
                 if new.rect.y < mine.rect.y:
-                    py = 1
+                    py = 30
                 elif new.rect.y == mine.rect.y:
                     py = 0
                 else:
-                    py = -1
+                    py = -player_image.get_height() + 110
 
                 if new.rect.x > mine.rect.x:
-                    px = -1
+                    px = -player_image.get_width() + 110
                 elif new.rect.x == mine.rect.x:
                     px = 0
                 else:
-                    px = 1
-                x = new.rect.x + px * s
-                y = new.rect.y + py * s
-                self.rect = self.image.get_rect().move(x, y)
+                    px = 30
+                self.rect = self.rect.move(new.rect.x - self.rect.x + px, new.rect.y - self.rect.y + py)
 
 
 class PortalBlue(pygame.sprite.Sprite):
@@ -311,44 +335,65 @@ class PortalBlue(pygame.sprite.Sprite):
         self.vy = directions[d][1] * 2
 
     def update(self):
-        if not pygame.sprite.spritecollideany(self, walls_group):
-            self.rect = self.rect.move(self.vx, self.vy)
+        self.rect = self.rect.move(self.vx, self.vy)
+        if pygame.sprite.spritecollideany(self, walls_group):
+            self.rect = self.rect.move(-self.vx, -self.vy)
+        if pygame.sprite.spritecollideany(self, obstacles_group):
+            self.rect = self.rect.move(-self.vx, -self.vy)
+
+    def direction(self):
+        return self.d
 
 
 class PortalRed(pygame.sprite.Sprite):
     def __init__(self, pos_x, pos_y, d):
         super().__init__(r_portal_group)
         self.d = d
-        print(d)
         self.image = portal_red_image[self.d]
         self.rect = self.image.get_rect().move(pos_x, pos_y)
         self.vx = directions[d][0] * 2
         self.vy = directions[d][1] * 2
 
     def update(self):
-        if not pygame.sprite.spritecollideany(self, walls_group):
-            self.rect = self.rect.move(self.vx, self.vy)
+        self.rect = self.rect.move(self.vx, self.vy)
+        if pygame.sprite.spritecollideany(self, walls_group):
+            self.rect = self.rect.move(-self.vx, -self.vy)
+        if pygame.sprite.spritecollideany(self, obstacles_group):
+            self.rect = self.rect.move(-self.vx, -self.vy)
+
+    def direction(self):
+        return self.d
 
 
 def generate_level(level):
-    new_player, new_door, x, y = None, None, None, None
+    new_player, new_door, button, cage, x, y = None, None, None, None, None, None
     for y in range(len(level)):
         for x in range(len(level[y])):
             if level[y][x] == '.':
-                Empty('empty', x, y)
+                Empty(x, y)
             elif level[y][x] == '#':
                 Wall('wall', x, y)
             elif level[y][x] == '@':
-                Empty('empty', x, y)
+                Empty(x, y)
                 new_player = Player(x, y)
             elif level[y][x] == 'd':
                 new_door = Door(x, y)
+            elif level[y][x] == 'c':
+                cage = Obstacles(x, y, 'c')
+                cage_coords.append([x, y])
+            elif level[y][x] == 'b':
+                Empty(x, y)
+                button = Button(x, y, 0)
+                button_coords.append([button.rect.x, button.rect.y])
+                # cage_coords.append([x, y])
+                global condition
+                condition = 0
     # вернем игрока, а также размер поля в клетках
-    return new_player, new_door, x, y
+    return new_player, new_door, button, cage, x, y
 
 
 start_screen()
-player, door, level_x, level_y = generate_level(load_level('map.txt'))
+player, door, button, cage, level_x, level_y = generate_level(load_level('map.txt'))
 while running:
     screen.fill(pygame.Color("white"))
     for event in pygame.event.get():
@@ -367,6 +412,24 @@ while running:
             if event.key == pygame.K_RIGHT:
                 hor = True
                 d = 'right'
+            if event.key == pygame.K_f:
+                if can_push_button:
+                    global condition
+                    condition = (condition + 1) % 2
+                    x = button.rect.x // 60
+                    y = button.rect.y // 60
+                    ox = cage_coords[0][0]
+                    oy = cage_coords[0][1]
+                    button_group = pygame.sprite.Group()
+                    button = Button(x, y, condition)
+                    obstacles_group = pygame.sprite.Group()
+                    if condition == 1:
+                         cage = Obstacles(x - 2, y, 'c')
+                         Empty(ox, oy)
+                    else:
+                        cage = Obstacles(ox, oy, 'c')
+                        Empty(x - 2, y)
+
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_UP:
                 ver = False
@@ -390,7 +453,6 @@ while running:
                     not_have_red = False
                     p_r = True
                     not_have_blue = True
-
     if ver:
         player.move_ver(0, directions[d][1])
         player.moving(d)
@@ -408,20 +470,34 @@ while running:
             b_portal_group = pygame.sprite.Group()
             r_portal_group = pygame.sprite.Group()
             doors_group = pygame.sprite.Group()
+            obstacles_group = pygame.sprite.Group()
+            button_group = pygame.sprite.Group()
             wall_image = pygame.transform.scale(load_image(levels[level][1]), (tile_width, tile_height))
             empty_image = pygame.transform.scale(load_image(levels[level][2]), (tile_width, tile_height))
-            player, door, level_x, level_y = generate_level(load_level(levels[level][0]))
+            player, door, button, cage, level_x, level_y = generate_level(load_level(levels[level][0]))
     if p_b:
         portal_b.update()
     if p_r:
         portal_r.update()
-    clock.tick(10)
+    clock.tick(15)
     walls_group.draw(screen)
     empty_group.draw(screen)
     doors_group.draw(screen)
+    obstacles_group.draw(screen)
+    button_group.draw(screen)
     b_portal_group.draw(screen)
     r_portal_group.draw(screen)
     player_group.draw(screen)
+    can_push_button = False
+    for i in button_coords:
+        for j in range(i[0], i[0] + 60):
+            for q in range(i[1], i[1] + 60):
+                if player.rect.x == j and player.rect.y == q:
+                    can_push_button = True
+                    font = pygame.font.Font(None, 50)
+                    num = 'Press F to use the button'
+                    text = font.render(num, 1, pygame.Color("green"))
+                    screen.blit(text, (250, 35))
     pygame.display.flip()
 end_screen()
 terminate()
