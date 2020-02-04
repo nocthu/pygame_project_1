@@ -4,6 +4,8 @@ import os
 
 # pygame.mixer.pre_init()
 pygame.init()
+pygame.mixer.music.load('data/fon.mp3')
+pygame.mixer.music.play(-1)
 size = width, height = 900, 600
 screen = pygame.display.set_mode(size)
 running = True
