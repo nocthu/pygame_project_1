@@ -2,7 +2,14 @@ import pygame
 import sys
 import os
 
+# pygame.mixer.pre_init()
 pygame.init()
+
+pygame.init()
+
+# pygame.mixer.music.load('data/song_1.mp3')
+# pygame.mixer.music.play(-1)
+
 size = width, height = 900, 600
 screen = pygame.display.set_mode(size)
 running = True
@@ -20,8 +27,10 @@ hor = False
 portal_b = False
 portal_r = False
 level = 1
-global a
+global a, n_button, n_cage
 a = 'right'
+n_button = 0
+n_cage = 0
 can_push_button = False
 
 levels = {2: ['map2.txt', 'wall_5.png', 'wall_7.png'], 3: ['map3.txt', 'wall_6.png', 'wall_10.png'],
@@ -38,6 +47,10 @@ r_portal_group = pygame.sprite.Group()
 doors_group = pygame.sprite.Group()
 obstacles_group = pygame.sprite.Group()
 button_group = pygame.sprite.Group()
+
+# pygame.mixer.init()
+# pygame.mixer.music.load("/Users/grigorijevseev/Desktop/Super Mario Bros. medley.wav")
+# pygame.mixer.music.play()
 
 
 def load_image(name, colorkey=None):
@@ -73,18 +86,23 @@ door_image = pygame.transform.scale(load_image('door.png'), (tile_width, tile_he
 obstacles = {'c': pygame.transform.scale(load_image('cage.png'), (tile_width, tile_height))}
 button_image = {0: pygame.transform.scale(load_image('button_red.png', -1), (tile_width, tile_height // 2)),
                 1: pygame.transform.scale(load_image('button_green.png', -1), (tile_width, tile_height // 2))}
-nap = [['left', 'right'], ['up', 'down']]
-button_coords = []
-cage_coords = []
+
+places_tb = {}
+places_fb = {}
+places_tm = {}
+al = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j']
+cages = []
+buttons = []
 
 
 def terminate():
+    pygame.mixer.quit()
     pygame.quit()
     sys.exit()
 
 
 def start_screen():
-    intro_text = ["Яндекс Лицей", "",
+    intro_text = ["Portal228", "",
                   "Проект pygame",
                   "",
                   "Нажмите любую клавишу"]
@@ -102,6 +120,9 @@ def start_screen():
         intro_rect.x = 10
         text_coord += intro_rect.height
         screen.blit(string_rendered, intro_rect)
+
+    pygame.mixer.music.load('data/fon.mp3')
+    pygame.mixer.music.play(-1)
 
     while True:
         for event in pygame.event.get():
@@ -145,19 +166,14 @@ def end_screen():
 
 def load_level(filename):
     filename = "data/" + filename
-    # читаем уровень, убирая символы перевода строки
     with open(filename, 'r') as mapFile:
         level_map = [line.strip() for line in mapFile]
-
-    # и подсчитываем максимальную длину
     max_width = max(map(len, level_map))
-
-    # дополняем каждую строку пустыми клетками ('.')
     return list(map(lambda x: x.ljust(max_width, '#'), level_map))
 
 
 class Wall(pygame.sprite.Sprite):
-    def __init__(self, tile_type, pos_x, pos_y):
+    def __init__(self, pos_x, pos_y):
         super().__init__(all_sprites)
         self.add(walls_group)
         self.image = wall_image
@@ -244,41 +260,43 @@ class Player(pygame.sprite.Sprite):
             mine = portal_b
             new = portal_r
             if new:
-                if (mine.direction() in nap[0] and new.direction() in nap[1]) or (mine.direction() in nap[1] and new.direction() in nap[0]):
-                    py = 0
-                elif new.rect.y < mine.rect.y:
-                    py = 30
-                elif new.rect.y == mine.rect.y:
-                    py = 0
-                else:
-                    py = -player_image.get_height() + 110
+                nuy = (new.rect.y - new.rect.y % 60) - self.rect.y
+                if new.direction() == 'up':
+                    nuy += 20
+                if new.rect.y == mine.rect.y:
+                    nuy = 0
+                if new.direction() == 'left' or new.direction() == 'right':
+                    nuy = new.rect.y - self.rect.y
 
-                if new.rect.x > mine.rect.x:
-                    px = -player_image.get_width() + 110
-                elif new.rect.x == mine.rect.x:
-                    px = 0
-                else:
-                    px = 30
-                self.rect = self.rect.move(new.rect.x - self.rect.x + px, new.rect.y - self.rect.y + py)
+                nux = (new.rect.x - new.rect.x % 60) - self.rect.x
+                if new.direction() == 'left':
+                    nux += 20
+                if new.rect.x == mine.rect.x:
+                    nux = 0
+                if new.direction() == 'up' or new.direction() == 'down':
+                    nux = new.rect.x - self.rect.x
+                self.rect = self.rect.move(nux, nuy)
 
         if pygame.sprite.spritecollideany(self, r_portal_group):
             mine = portal_r
             new = portal_b
             if new:
-                if new.rect.y < mine.rect.y:
-                    py = 30
-                elif new.rect.y == mine.rect.y:
-                    py = 0
-                else:
-                    py = -player_image.get_height() + 110
+                nuy = (new.rect.y - new.rect.y % 60) - self.rect.y
+                if new.direction() == 'up':
+                    nuy += 20
+                if new.rect.y == mine.rect.y:
+                    nuy = 0
+                if new.direction() == 'left' or new.direction() == 'right':
+                    nuy = new.rect.y - self.rect.y
 
-                if new.rect.x > mine.rect.x:
-                    px = -player_image.get_width() + 110
-                elif new.rect.x == mine.rect.x:
-                    px = 0
-                else:
-                    px = 30
-                self.rect = self.rect.move(new.rect.x - self.rect.x + px, new.rect.y - self.rect.y + py)
+                nux = (new.rect.x - new.rect.x % 60) - self.rect.x
+                if new.direction() == 'left':
+                    nux += 20
+                if new.rect.x == mine.rect.x:
+                    nux = 0
+                if new.direction() == 'up' or new.direction() == 'down':
+                    nux = new.rect.x - self.rect.x
+                self.rect = self.rect.move(nux, nuy)
 
     def move_hor(self, x, y):
         self.rect = self.rect.move(x, y)
@@ -290,39 +308,43 @@ class Player(pygame.sprite.Sprite):
             mine = portal_b
             new = portal_r
             if new:
-                if new.rect.y < mine.rect.y:
-                    py = 30
-                elif new.rect.y == mine.rect.y:
-                    py = 0
-                else:
-                    py = -player_image.get_height() + 110
+                nuy = (new.rect.y - new.rect.y % 60) - self.rect.y
+                if new.direction() == 'up':
+                    nuy += 20
+                if new.rect.y == mine.rect.y:
+                    nuy = 0
+                if new.direction() == 'left' or new.direction() == 'right':
+                    nuy = new.rect.y - self.rect.y
 
-                if new.rect.x > mine.rect.x:
-                    px = -player_image.get_width() + 110
-                elif new.rect.x == mine.rect.x:
-                    px = 0
-                else:
-                    px = 30
-                self.rect = self.rect.move(new.rect.x - self.rect.x + px, new.rect.y - self.rect.y + py)
+                nux = (new.rect.x - new.rect.x % 60) - self.rect.x
+                if new.direction() == 'left':
+                    nux += 20
+                if new.rect.x == mine.rect.x:
+                    nux = 0
+                if new.direction() == 'up' or new.direction() == 'down':
+                    nux = new.rect.x - self.rect.x
+                self.rect = self.rect.move(nux, nuy)
 
         if pygame.sprite.spritecollideany(self, r_portal_group):
             mine = portal_r
             new = portal_b
             if new:
-                if new.rect.y < mine.rect.y:
-                    py = 30
-                elif new.rect.y == mine.rect.y:
-                    py = 0
-                else:
-                    py = -player_image.get_height() + 110
+                nuy = (new.rect.y - new.rect.y % 60) - self.rect.y
+                if new.direction() == 'up':
+                    nuy += 20
+                if new.rect.y == mine.rect.y:
+                    nuy = 0
+                if new.direction() == 'left' or new.direction() == 'right':
+                    nuy = new.rect.y - self.rect.y
 
-                if new.rect.x > mine.rect.x:
-                    px = -player_image.get_width() + 110
-                elif new.rect.x == mine.rect.x:
-                    px = 0
-                else:
-                    px = 30
-                self.rect = self.rect.move(new.rect.x - self.rect.x + px, new.rect.y - self.rect.y + py)
+                nux = (new.rect.x - new.rect.x % 60) - self.rect.x
+                if new.direction() == 'left':
+                    nux += 20
+                if new.rect.x == mine.rect.x:
+                    nux = 0
+                if new.direction() == 'up' or new.direction() == 'down':
+                    nux = new.rect.x - self.rect.x
+                self.rect = self.rect.move(nux, nuy)
 
 
 class PortalBlue(pygame.sprite.Sprite):
@@ -344,6 +366,12 @@ class PortalBlue(pygame.sprite.Sprite):
     def direction(self):
         return self.d
 
+    def get_width(self):
+        return self.image.get_width()
+
+    def get_height(self):
+        return self.image.get_height()
+
 
 class PortalRed(pygame.sprite.Sprite):
     def __init__(self, pos_x, pos_y, d):
@@ -364,36 +392,49 @@ class PortalRed(pygame.sprite.Sprite):
     def direction(self):
         return self.d
 
+    def get_width(self):
+        return self.image.get_width()
 
-def generate_level(level):
-    new_player, new_door, button, cage, x, y = None, None, None, None, None, None
-    for y in range(len(level)):
-        for x in range(len(level[y])):
-            if level[y][x] == '.':
+    def get_height(self):
+        return self.image.get_height()
+
+
+def generate_level(lvl):
+    new_player, new_door, x, y = None, None, None, None
+    for y in range(len(lvl)):
+        for x in range(len(lvl[y])):
+            if lvl[y][x] == '.':
                 Empty(x, y)
-            elif level[y][x] == '#':
-                Wall('wall', x, y)
-            elif level[y][x] == '@':
+            elif lvl[y][x] == '#':
+                Wall(x, y)
+            elif lvl[y][x] == '@':
                 Empty(x, y)
                 new_player = Player(x, y)
-            elif level[y][x] == 'd':
+            elif lvl[y][x] == '!':
                 new_door = Door(x, y)
-            elif level[y][x] == 'c':
+            elif lvl[y][x].isdigit():
+                Empty(x, y)
                 cage = Obstacles(x, y, 'c')
-                cage_coords.append([x, y])
-            elif level[y][x] == 'b':
+                cages.append(cage)
+                places_tb[int(lvl[y][x])] = [x, y]
+
+                filename = "data/lvl_" + str(level)
+                with open(filename, 'r') as mapFile:
+                    level_map = [line.strip() for line in mapFile]
+                x1, y1 = int(level_map[int(lvl[y][x])].split()[0]), int(level_map[int(lvl[y][x])].split()[1])
+                places_tm[int(lvl[y][x])] = [x + x1, y + y1]
+            elif lvl[y][x].isalpha():
                 Empty(x, y)
                 button = Button(x, y, 0)
-                button_coords.append([button.rect.x, button.rect.y])
-                # cage_coords.append([x, y])
-                global condition
-                condition = 0
-    # вернем игрока, а также размер поля в клетках
-    return new_player, new_door, button, cage, x, y
+                buttons.append(button)
+                places_fb[al.index(lvl[y][x])] = [x, y, False, 0]
+    return new_player, new_door, x, y
 
 
 start_screen()
-player, door, button, cage, level_x, level_y = generate_level(load_level('map.txt'))
+pygame.mixer.music.load('data/song_1.mp3')
+pygame.mixer.music.play(-1)
+player, door, level_x, level_y = generate_level(load_level('map.txt'))
 while running:
     screen.fill(pygame.Color("white"))
     for event in pygame.event.get():
@@ -413,22 +454,20 @@ while running:
                 hor = True
                 d = 'right'
             if event.key == pygame.K_f:
-                if can_push_button:
-                    global condition
-                    condition = (condition + 1) % 2
-                    x = button.rect.x // 60
-                    y = button.rect.y // 60
-                    ox = cage_coords[0][0]
-                    oy = cage_coords[0][1]
-                    button_group = pygame.sprite.Group()
-                    button = Button(x, y, condition)
-                    obstacles_group = pygame.sprite.Group()
-                    if condition == 1:
-                         cage = Obstacles(x - 2, y, 'c')
-                         Empty(ox, oy)
-                    else:
-                        cage = Obstacles(ox, oy, 'c')
-                        Empty(x - 2, y)
+                for i in places_fb:
+                    if places_fb[i][2]:
+                        places_fb[i][3] = (places_fb[i][3] + 1) % 2
+                        Button(places_fb[i][0], places_fb[i][1], places_fb[i][3])
+                        obstacles_group = pygame.sprite.Group()
+                        for j in places_tb:
+                            if j != i:
+                                Obstacles(places_tb[j][0], places_tb[j][1], 'c')
+                        if places_fb[i][3] == 1:
+                            places_tb[i], places_tm[i] = places_tm[i], places_tb[i]
+                            Obstacles(places_tb[i][0], places_tb[i][1], 'c')
+                        else:
+                            places_tb[i], places_tm[i] = places_tm[i], places_tb[i]
+                            Obstacles(places_tb[i][0], places_tb[i][1], 'c')
 
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_UP:
@@ -472,9 +511,13 @@ while running:
             doors_group = pygame.sprite.Group()
             obstacles_group = pygame.sprite.Group()
             button_group = pygame.sprite.Group()
+            button_coords = []
+            coords = {}
+            places_fb = {}
+            places_tb = {}
             wall_image = pygame.transform.scale(load_image(levels[level][1]), (tile_width, tile_height))
             empty_image = pygame.transform.scale(load_image(levels[level][2]), (tile_width, tile_height))
-            player, door, button, cage, level_x, level_y = generate_level(load_level(levels[level][0]))
+            player, door, level_x, level_y = generate_level(load_level(levels[level][0]))
     if p_b:
         portal_b.update()
     if p_r:
@@ -489,15 +532,15 @@ while running:
     r_portal_group.draw(screen)
     player_group.draw(screen)
     can_push_button = False
-    for i in button_coords:
-        for j in range(i[0], i[0] + 60):
-            for q in range(i[1], i[1] + 60):
-                if player.rect.x == j and player.rect.y == q:
-                    can_push_button = True
-                    font = pygame.font.Font(None, 50)
-                    num = 'Press F to use the button'
-                    text = font.render(num, 1, pygame.Color("green"))
-                    screen.blit(text, (250, 35))
+    for i in places_fb:
+        if places_fb[i][0] == player.rect.x // 60 and places_fb[i][1] == player.rect.y // 60:
+            places_fb[i][2] = True
+            font = pygame.font.Font(None, 50)
+            num = 'Press F to use the button'
+            text = font.render(num, 1, pygame.Color("green"))
+            screen.blit(text, (250, 35))
+        else:
+            places_fb[i][2] = False
     pygame.display.flip()
 end_screen()
 terminate()
