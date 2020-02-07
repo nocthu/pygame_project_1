@@ -74,6 +74,9 @@ places_tm = {}
 al = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j']
 cages = []
 buttons = []
+soundtrack = {1: 'data/m_2.mp3', 2: 'data/m_3.mp3', 3: 'data/m_4.mp3',
+              4: 'data/m_5.mp3', 5: 'data/m_6.mp3', 6: 'data/m_7.mp3'}
+no_music = True
 
 
 def terminate():
@@ -99,7 +102,7 @@ def start_screen():
         intro_rect.x = 225
         text_coord += intro_rect.height
         screen.blit(string_rendered, intro_rect)
-    pygame.mixer.music.load('data/fon.mp3')
+    pygame.mixer.music.load('data/m_1.mp3')
     pygame.mixer.music.play(-1)
     while True:
         for event in pygame.event.get():
@@ -130,7 +133,8 @@ def end_screen():
         intro_rect.x = 10
         text_coord += intro_rect.height
         screen.blit(string_rendered, intro_rect)
-
+        pygame.mixer.music.load('data/m_8.mp3')
+        pygame.mixer.music.play(-1)
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -408,12 +412,18 @@ def generate_level(lvl):
     return new_player, new_door, x, y
 
 
+def music(l):
+    pygame.mixer.music.set_volume(0.75)
+    pygame.mixer.music.load(soundtrack[l])
+    pygame.mixer.music.play(-1)
+
+
 start_screen()
-pygame.mixer.music.load('data/song_1.mp3')
-pygame.mixer.music.set_volume(0.4)
-pygame.mixer.music.play(-1)
 player, door, level_x, level_y = generate_level(load_level('map.txt'))
 while running:
+    if no_music:
+        music(level)
+        no_music = False
     screen.fill(pygame.Color("white"))
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -479,6 +489,7 @@ while running:
             level += 1
             if level == 7:
                 break
+            no_music = True
             all_sprites = pygame.sprite.Group()
             walls_group = pygame.sprite.Group()
             empty_group = pygame.sprite.Group()
