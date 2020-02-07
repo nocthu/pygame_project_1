@@ -418,7 +418,7 @@ def generate_level(lvl):
                 cages.append(cage)
                 places_tb[int(lvl[y][x])] = [x, y]
 
-                filename = "data/lvl_" + str(level)
+                filename = "data\lvl_" + str(level)
                 with open(filename, 'r') as mapFile:
                     level_map = [line.strip() for line in mapFile]
                 x1, y1 = int(level_map[int(lvl[y][x])].split()[0]), int(level_map[int(lvl[y][x])].split()[1])
