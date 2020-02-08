@@ -516,7 +516,7 @@ while running:
     if hor:
         player.move_hor(directions[d][0], 0)
         player.moving(d)
-        if player.rect.x == door.rect.x and coin_count == level:
+        if player.rect.x == door.rect.x:
             level += 1
             if level == 7:
                 end_screen(1)
