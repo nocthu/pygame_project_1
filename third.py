@@ -18,6 +18,7 @@ hor = False
 portal_b = False
 portal_r = False
 level = 1
+f = pygame.Color("green")
 
 levels = {2: ['map2.txt', 'wall_5.png', 'wall_7.png'], 3: ['map3.txt', 'wall_6.png', 'wall_10.png'],
           4: ['map4.txt', 'wall_14.png', 'wall_15.png'], 5: ['map5.txt', 'wall_9.png', 'wall_16.png'],
@@ -33,6 +34,8 @@ r_portal_group = pygame.sprite.Group()
 doors_group = pygame.sprite.Group()
 obstacles_group = pygame.sprite.Group()
 button_group = pygame.sprite.Group()
+coin_group = pygame.sprite.Group()
+
 
 def load_image(name, colorkey=None):
     fullname = os.path.join('data', name)
@@ -55,22 +58,26 @@ wall_image = pygame.transform.scale(load_image('wall_3.png'), (tile_width, tile_
 empty_image = pygame.transform.scale(load_image('wall_2.png'), (tile_width, tile_height))
 player_image = pygame.transform.scale(load_image("pl.bmp", -1), (150, 150))
 portal_blue_image = {'right': pygame.transform.scale(load_image('portal_blue.png', -1), (15, 25)),
-                     'left':  pygame.transform.scale(load_image('portal_blue_left.png', -1), (15, 25)),
-                     'up':  pygame.transform.scale(load_image('portal_blue_up.png', -1), (25, 15)),
-                     'down':  pygame.transform.scale(load_image('portal_blue_down.png', -1), (25, 15))}
+                     'left': pygame.transform.scale(load_image('portal_blue_left.png', -1), (15, 25)),
+                     'up': pygame.transform.scale(load_image('portal_blue_up.png', -1), (25, 15)),
+                     'down': pygame.transform.scale(load_image('portal_blue_down.png', -1), (25, 15))}
 portal_red_image = {'right': pygame.transform.scale(load_image('portal_red.png', -1), (15, 25)),
-                    'left':  pygame.transform.scale(load_image('portal_red_left.png', -1), (15, 25)),
-                    'up':  pygame.transform.scale(load_image('portal_red_up.png', -1), (25, 15)),
-                    'down':  pygame.transform.scale(load_image('portal_red_down.png', -1), (25, 15))}
+                    'left': pygame.transform.scale(load_image('portal_red_left.png', -1), (15, 25)),
+                    'up': pygame.transform.scale(load_image('portal_red_up.png', -1), (25, 15)),
+                    'down': pygame.transform.scale(load_image('portal_red_down.png', -1), (25, 15))}
 directions = {'right': (5, 0), 'left': (-5, 0), 'up': (0, -5), 'down': (0, 5)}
 door_image = pygame.transform.scale(load_image('door.png'), (tile_width, tile_height))
 obstacles = {'c': pygame.transform.scale(load_image('cage.png'), (tile_width, tile_height))}
 button_image = {0: pygame.transform.scale(load_image('button_red.png', -1), (tile_width, tile_height // 2)),
                 1: pygame.transform.scale(load_image('button_green.png', -1), (tile_width, tile_height // 2))}
 sound1 = pygame.mixer.Sound("data/shoot_1.wav")
+sound2 = pygame.mixer.Sound("data/coin_1.wav")
+coin_image = pygame.transform.scale(load_image('coin.png'), (20, 20))
 places_tb = {}
 places_fb = {}
 places_tm = {}
+coin_coords = []
+coin_count = 0
 al = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j']
 cages = []
 buttons = []
@@ -91,7 +98,7 @@ def start_screen():
                   "",
                   "Нажмите любую клавишу"]
     fon = load_image('logo.jpg')
-    screen.blit(fon, (0, 100))
+    screen.blit(fon, (225, 100))
     font = pygame.font.Font(None, 70)
     text_coord = 100
     for line in intro_text:
@@ -99,7 +106,7 @@ def start_screen():
         intro_rect = string_rendered.get_rect()
         text_coord += 10
         intro_rect.top = text_coord
-        intro_rect.x = 225
+        intro_rect.x = 450
         text_coord += intro_rect.height
         screen.blit(string_rendered, intro_rect)
     pygame.mixer.music.load('data/m_1.mp3')
@@ -114,23 +121,28 @@ def start_screen():
         clock.tick(FPS)
 
 
-def end_screen():
+def end_screen(win):
     screen.fill(pygame.Color("black"))
-    intro_text = ["GAME OVER", "",
-                  "Разработчики:",
-                  "Скранжевская Ксения",
-                  "Евсеев Григорий"]
-
+    if win == 0:
+        intro_text = ["GAME OVER", "",
+                      "Разработчики:",
+                      "Скранжевская Ксения",
+                      "Евсеев Григорий"]
+    else:
+        intro_text = ["YOU WIN", "",
+                      "Разработчики:",
+                      "Скранжевская Ксения",
+                      "Евсеев Григорий"]
     fon = load_image('logo.jpg')
-    screen.blit(fon, (0, 100))
-    font = pygame.font.Font(None, 30)
+    screen.blit(fon, (225, 100))
+    font = pygame.font.Font(None, 70)
     text_coord = 100
     for line in intro_text:
         string_rendered = font.render(line, 1, pygame.Color('red'))
         intro_rect = string_rendered.get_rect()
         text_coord += 10
         intro_rect.top = text_coord
-        intro_rect.x = 10
+        intro_rect.x = 450
         text_coord += intro_rect.height
         screen.blit(string_rendered, intro_rect)
         pygame.mixer.music.load('data/m_8.mp3')
@@ -187,6 +199,13 @@ class Button(pygame.sprite.Sprite):
         super().__init__(button_group, all_sprites)
         self.image = button_image[c]
         self.rect = self.image.get_rect().move(tile_width * pos_x, tile_height * pos_y)
+
+
+class Coin(pygame.sprite.Sprite):
+    def __init__(self, pos_x, pos_y):
+        super().__init__(coin_group, all_sprites)
+        self.image = coin_image
+        self.rect = self.image.get_rect().move(tile_width * pos_x + 20, tile_height * pos_y + 20)
 
 
 class Player(pygame.sprite.Sprite):
@@ -393,12 +412,15 @@ def generate_level(lvl):
                 new_player = Player(x, y)
             elif lvl[y][x] == '!':
                 new_door = Door(x, y)
+            elif lvl[y][x] == '/':
+                Empty(x, y)
+                Coin(x, y)
+                coin_coords.append([x, y, False])
             elif lvl[y][x].isdigit():
                 Empty(x, y)
                 cage = Obstacles(x, y, 'c')
                 cages.append(cage)
                 places_tb[int(lvl[y][x])] = [x, y]
-
                 filename = "data/lvl_" + str(level)
                 with open(filename, 'r') as mapFile:
                     level_map = [line.strip() for line in mapFile]
@@ -427,6 +449,7 @@ while running:
     screen.fill(pygame.Color("white"))
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
+            end_screen(0)
             running = False
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_UP:
@@ -456,7 +479,15 @@ while running:
                         else:
                             places_tb[i], places_tm[i] = places_tm[i], places_tb[i]
                             Obstacles(places_tb[i][0], places_tb[i][1], 'c')
-
+            if event.key == pygame.K_e:
+                for i in coin_coords:
+                    if i[2]:
+                        coin_count += 1
+                        sound2.play()
+                        del coin_coords[coin_coords.index(i)]
+                        coin_group = pygame.sprite.Group()
+                        for i in coin_coords:
+                            Coin(i[0], i[1])
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_UP:
                 ver = False
@@ -485,9 +516,10 @@ while running:
     if hor:
         player.move_hor(directions[d][0], 0)
         player.moving(d)
-        if player.rect.x == door.rect.x:
+        if player.rect.x == door.rect.x and coin_count == level:
             level += 1
             if level == 7:
+                end_screen(1)
                 break
             no_music = True
             all_sprites = pygame.sprite.Group()
@@ -495,40 +527,54 @@ while running:
             empty_group = pygame.sprite.Group()
             player_group = pygame.sprite.Group()
             b_portal_group = pygame.sprite.Group()
+            coin_group = pygame.sprite.Group()
             r_portal_group = pygame.sprite.Group()
             doors_group = pygame.sprite.Group()
             obstacles_group = pygame.sprite.Group()
             button_group = pygame.sprite.Group()
             button_coords = []
+            coin_coords = []
             coords = {}
             places_fb = {}
             places_tb = {}
             wall_image = pygame.transform.scale(load_image(levels[level][1]), (tile_width, tile_height))
             empty_image = pygame.transform.scale(load_image(levels[level][2]), (tile_width, tile_height))
-            player, door, level_x, level_y = generate_level(load_level(levels[level][0]))
+            if coin_count == level:
+                player, door, level_x, level_y = generate_level(load_level(levels[level][0]))
     if portal_b:
         portal_b.update()
     if portal_r:
         portal_r.update()
+    if level == 1 or level == 3 or level == 6:
+        f = pygame.Color("green")
+    elif level == 2 or level == 4 or level == 5:
+        f = pygame.Color("red")
     clock.tick(15)
     walls_group.draw(screen)
     empty_group.draw(screen)
     doors_group.draw(screen)
     obstacles_group.draw(screen)
     button_group.draw(screen)
+    coin_group.draw(screen)
     b_portal_group.draw(screen)
     r_portal_group.draw(screen)
     player_group.draw(screen)
     can_push_button = False
+    for i in coin_coords:
+        if player.rect.x // 60 == i[0] and player.rect.y // 60 == i[1]:
+            i[2] = True
+            font = pygame.font.Font(None, 50)
+            num = 'Press E to collect the coin'
+            text = font.render(num, 1, f)
+            screen.blit(text, (390, 30))
     for i in places_fb:
         if places_fb[i][0] == player.rect.x // 60 and places_fb[i][1] == player.rect.y // 60:
             places_fb[i][2] = True
             font = pygame.font.Font(None, 50)
             num = 'Press F to use the button'
-            text = font.render(num, 1, pygame.Color("green"))
-            screen.blit(text, (250, 35))
+            text = font.render(num, 1, f)
+            screen.blit(text, (390, 30))
         else:
             places_fb[i][2] = False
     pygame.display.flip()
-end_screen()
 terminate()
