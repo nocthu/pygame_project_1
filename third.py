@@ -36,7 +36,6 @@ obstacles_group = pygame.sprite.Group()
 button_group = pygame.sprite.Group()
 coin_group = pygame.sprite.Group()
 
-
 def load_image(name, colorkey=None):
     fullname = os.path.join('data', name)
     try:
@@ -58,13 +57,13 @@ wall_image = pygame.transform.scale(load_image('wall_3.png'), (tile_width, tile_
 empty_image = pygame.transform.scale(load_image('wall_2.png'), (tile_width, tile_height))
 player_image = pygame.transform.scale(load_image("pl.bmp", -1), (150, 150))
 portal_blue_image = {'right': pygame.transform.scale(load_image('portal_blue.png', -1), (15, 25)),
-                     'left': pygame.transform.scale(load_image('portal_blue_left.png', -1), (15, 25)),
-                     'up': pygame.transform.scale(load_image('portal_blue_up.png', -1), (25, 15)),
-                     'down': pygame.transform.scale(load_image('portal_blue_down.png', -1), (25, 15))}
+                     'left':  pygame.transform.scale(load_image('portal_blue_left.png', -1), (15, 25)),
+                     'up':  pygame.transform.scale(load_image('portal_blue_up.png', -1), (25, 15)),
+                     'down':  pygame.transform.scale(load_image('portal_blue_down.png', -1), (25, 15))}
 portal_red_image = {'right': pygame.transform.scale(load_image('portal_red.png', -1), (15, 25)),
-                    'left': pygame.transform.scale(load_image('portal_red_left.png', -1), (15, 25)),
-                    'up': pygame.transform.scale(load_image('portal_red_up.png', -1), (25, 15)),
-                    'down': pygame.transform.scale(load_image('portal_red_down.png', -1), (25, 15))}
+                    'left':  pygame.transform.scale(load_image('portal_red_left.png', -1), (15, 25)),
+                    'up':  pygame.transform.scale(load_image('portal_red_up.png', -1), (25, 15)),
+                    'down':  pygame.transform.scale(load_image('portal_red_down.png', -1), (25, 15))}
 directions = {'right': (5, 0), 'left': (-5, 0), 'up': (0, -5), 'down': (0, 5)}
 door_image = pygame.transform.scale(load_image('door.png'), (tile_width, tile_height))
 obstacles = {'c': pygame.transform.scale(load_image('cage.png'), (tile_width, tile_height))}
@@ -421,7 +420,7 @@ def generate_level(lvl):
                 cage = Obstacles(x, y, 'c')
                 cages.append(cage)
                 places_tb[int(lvl[y][x])] = [x, y]
-                filename = "data/lvl_" + str(level)
+                filename = "data/lvl_" + str(level) + '.txt'
                 with open(filename, 'r') as mapFile:
                     level_map = [line.strip() for line in mapFile]
                 x1, y1 = int(level_map[int(lvl[y][x])].split()[0]), int(level_map[int(lvl[y][x])].split()[1])
@@ -438,7 +437,6 @@ def music(l):
     pygame.mixer.music.set_volume(0.75)
     pygame.mixer.music.load(soundtrack[l])
     pygame.mixer.music.play(-1)
-
 
 start_screen()
 player, door, level_x, level_y = generate_level(load_level('map.txt'))
@@ -486,8 +484,8 @@ while running:
                         sound2.play()
                         del coin_coords[coin_coords.index(i)]
                         coin_group = pygame.sprite.Group()
-                        for i in coin_coords:
-                            Coin(i[0], i[1])
+                        for j in coin_coords:
+                            Coin(j[0], j[1])
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_UP:
                 ver = False
@@ -517,30 +515,36 @@ while running:
         player.move_hor(directions[d][0], 0)
         player.moving(d)
         if player.rect.x == door.rect.x:
-            level += 1
-            if level == 7:
-                end_screen(1)
-                break
-            no_music = True
-            all_sprites = pygame.sprite.Group()
-            walls_group = pygame.sprite.Group()
-            empty_group = pygame.sprite.Group()
-            player_group = pygame.sprite.Group()
-            b_portal_group = pygame.sprite.Group()
-            coin_group = pygame.sprite.Group()
-            r_portal_group = pygame.sprite.Group()
-            doors_group = pygame.sprite.Group()
-            obstacles_group = pygame.sprite.Group()
-            button_group = pygame.sprite.Group()
-            button_coords = []
-            coin_coords = []
-            coords = {}
-            places_fb = {}
-            places_tb = {}
-            wall_image = pygame.transform.scale(load_image(levels[level][1]), (tile_width, tile_height))
-            empty_image = pygame.transform.scale(load_image(levels[level][2]), (tile_width, tile_height))
             if coin_count == level:
+                level += 1
+                if level == 7:
+                    end_screen(1)
+                    break
+                no_music = True
+                all_sprites = pygame.sprite.Group()
+                walls_group = pygame.sprite.Group()
+                empty_group = pygame.sprite.Group()
+                player_group = pygame.sprite.Group()
+                b_portal_group = pygame.sprite.Group()
+                r_portal_group = pygame.sprite.Group()
+                doors_group = pygame.sprite.Group()
+                obstacles_group = pygame.sprite.Group()
+                button_group = pygame.sprite.Group()
+                coin_group = pygame.sprite.Group()
+                button_coords = []
+                coords = {}
+                places_fb = {}
+                places_tb = {}
+                coin_coords = []
+                coin_count = 0
+                wall_image = pygame.transform.scale(load_image(levels[level][1]), (tile_width, tile_height))
+                empty_image = pygame.transform.scale(load_image(levels[level][2]), (tile_width, tile_height))
                 player, door, level_x, level_y = generate_level(load_level(levels[level][0]))
+            else:
+                font = pygame.font.Font(None, 50)
+                num = 'Collect all coins'
+                text = font.render(num, 1, f)
+                screen.blit(text, (390, 30))
     if portal_b:
         portal_b.update()
     if portal_r:
@@ -553,9 +557,9 @@ while running:
     walls_group.draw(screen)
     empty_group.draw(screen)
     doors_group.draw(screen)
+    coin_group.draw(screen)
     obstacles_group.draw(screen)
     button_group.draw(screen)
-    coin_group.draw(screen)
     b_portal_group.draw(screen)
     r_portal_group.draw(screen)
     player_group.draw(screen)
