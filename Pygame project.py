@@ -246,7 +246,7 @@ class Player(pygame.sprite.Sprite):
 
     def move_ver(self, x, y):
         self.rect = self.rect.move(x, y)
-        if self.rect.x < 0 or self.rect.x > 1200 or self.rect.y < 0 or self.rect.y > 600:
+        if self.rect.x < 0 or self.rect.x + 30 > 1200 or self.rect.y < 0 or self.rect.y + 35 > 600:
             self.rect = self.rect.move(-x, -y)
         if pygame.sprite.spritecollideany(self, walls_group):
             self.rect = self.rect.move(-x, -y)
@@ -301,7 +301,7 @@ class Player(pygame.sprite.Sprite):
 
     def move_hor(self, x, y):
         self.rect = self.rect.move(x, y)
-        if self.rect.x < 0 or self.rect.x > 1200 or self.rect.y < 0 or self.rect.y > 600:
+        if self.rect.x < 0 or self.rect.x + 30 > 1200 or self.rect.y < 0 or self.rect.y + 35 > 600:
             self.rect = self.rect.move(-x, -y)
         if pygame.sprite.spritecollideany(self, walls_group):
             self.rect = self.rect.move(-x, -y)
@@ -361,7 +361,7 @@ class PortalBlue(pygame.sprite.Sprite):
 
     def update(self):
         self.rect = self.rect.move(self.vx, self.vy)
-        if self.rect.x < 0 or self.rect.x > 1200 or self.rect.y < 0 or self.rect.y > 600:
+        if self.rect.x < 0 or self.rect.x > 1200 or self.rect.y < 0 or self.rect.y + 15 > 600:
             self.rect = self.rect.move(-self.vx, -self.vy)
         if pygame.sprite.spritecollideany(self, walls_group):
             self.rect = self.rect.move(-self.vx, -self.vy)
@@ -389,7 +389,7 @@ class PortalRed(pygame.sprite.Sprite):
 
     def update(self):
         self.rect = self.rect.move(self.vx, self.vy)
-        if self.rect.x < 0 or self.rect.x > 1200 or self.rect.y < 0 or self.rect.y > 600:
+        if self.rect.x < 0 or self.rect.x > 1200 or self.rect.y < 0 or self.rect.y + 15 > 600:
             self.rect = self.rect.move(-self.vx, -self.vy)
         if pygame.sprite.spritecollideany(self, walls_group):
             self.rect = self.rect.move(-self.vx, -self.vy)
@@ -548,11 +548,6 @@ while running:
                 wall_image = pygame.transform.scale(load_image(levels[level][1]), (tile_width, tile_height))
                 empty_image = pygame.transform.scale(load_image(levels[level][2]), (tile_width, tile_height))
                 player, door, level_x, level_y = generate_level(load_level(levels[level][0]))
-            else:
-                font = pygame.font.Font(None, 50)
-                num = 'Collect all coins'
-                text = font.render(num, 1, f)
-                screen.blit(text, (390, 30))
     if portal_b:
         portal_b.update()
     if portal_r:
