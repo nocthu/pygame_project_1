@@ -539,6 +539,8 @@ while running:
                 obstacles_group = pygame.sprite.Group()
                 button_group = pygame.sprite.Group()
                 coin_group = pygame.sprite.Group()
+                portal_r = None
+                portal_b = None
                 button_coords = []
                 coords = {}
                 places_fb = {}
